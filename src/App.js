@@ -34,28 +34,30 @@ class App extends Component {
 
 	addPartidas(v){
 		this.w='choose';
-		this.setState((prevState) => { partidas : prevState.partidas.push(v); });
-		this.setState({caja : 1})
+		this.setState({ partidas : v, caja : 1 });
+		console.log(this.state.partidas);
 	}
 
 	addRelation(v){
 		//this.state.partidas_x_cajas[this.state.caja].push(v);
 		var tmp_partidas = this.state.partidas;
-		for(var i in this.state.partidas[0]){
-			for (var j in this.state.partidas[0][i]) {
-				if(this.state.partidas[0][i][j].iddetalle===v){
-					if (isNaN(this.state.partidas[0][i][j].caja) ) {
-						tmp_partidas[0][i][j].caja = this.state.caja;
-						tmp_partidas[0][i][j].className = 'fa fa-check';
-					}else{
-						tmp_partidas[0][i][j].caja = NaN;
-						tmp_partidas[0][i][j].className = null;
+		for(var i in this.state.partidas){
+			if(this.state.partidas[i]!==undefined){
+				for (var j in this.state.partidas[i]) {
+					if(this.state.partidas[i][j].iddetalle===v){
+						if (isNaN(this.state.partidas[i][j].caja) ) {
+							tmp_partidas[i][j].caja = this.state.caja;
+							tmp_partidas[i][j].className = 'fa fa-check';
+						}else{
+							tmp_partidas[i][j].caja = NaN;
+							tmp_partidas[i][j].className = null;
+						}
 					}
 				}
 			}
 	
 		}
-		this.setState((prevState) => { partidas :  tmp_partidas});
+		this.setState({ partidas :  tmp_partidas})
 		console.log(this.state)
 	}
 
@@ -169,13 +171,17 @@ class App extends Component {
 						var tmp_partidas = this.state.partidas;
 						var partidas_ = [];
 
-						for(var i in this.state.partidas[0]){
-							for (var j in this.state.partidas[0][i]) {
-								tmp_partidas[0][i][j].style = {};
-								tmp_partidas[0][i][j].op = i;
-								
+						for(var i in this.state.partidas){
+							if(this.state.partidas[i]!==undefined){
+								for (var j in this.state.partidas[i]) {
+									if(this.state.partidas[i][j]!==undefined){
+										tmp_partidas[i][j].style = {};
+										tmp_partidas[i][j].op = i;
+									}
+									
+								}
+								partidas_ = update(partidas_, {$push : tmp_partidas[i]});
 							}
-							partidas_ = update(partidas_, {$push : tmp_partidas[0][i]});
 						}
 						this.setState({partidas : tmp_partidas});
 						this.setState({review : _.sortBy(partidas_,function(o) { return o.caja })});
@@ -186,20 +192,23 @@ class App extends Component {
 			break;
 
 			case 'Siguiente':
-				var tmp_partidas = this.state.partidas;
-				for(var i in this.state.partidas[0]){
-					for (var j in this.state.partidas[0][i]) {
-						if(!isNaN(this.state.partidas[0][i][j].caja) ){
-							this.state.partidas[0][i][j].style =  { display : 'none' };
+				var tmp_partidas_ = this.state.partidas;
+				for(var r in this.state.partidas){
+					if(this.state.partidas[r]!==undefined){
+						for (var p in this.state.partidas[r]) {
+							if(!isNaN(this.state.partidas[r][p].caja) ){
+								tmp_partidas_[r][p].style =  { display : 'none' };
+							}
 						}
 					}
 			
 				}
+				this.setState({partidas : tmp_partidas_})
 				this.setState((prevState) => ({ caja : prevState.caja+1}));
 
 			break;
 			case 'Generar Guia':
-				var g = this.getNoGuia();
+				this.getNoGuia();
 			break;
 			case 'Imprimir Ficha':
 				this.printZpl();
@@ -278,7 +287,6 @@ class App extends Component {
 						</div>
 					</div>
 					);
-			break;
 			case 'getPartidas':
 				var on_load = null;
 				if(this.state.partidas !==  null){
@@ -307,16 +315,15 @@ class App extends Component {
 						</div>
 					</div>
 				);
-			break;
 			case 'choose':
-			var cal = null;
-				if(this.state.caja < parseInt(this.state.cajas)){
+				var cal = null;
+				if(this.state.caja < parseInt(this.state.cajas,10)){
 					cal = <Calculate label="Siguiente" appendValue={this.appendValue.bind(this)}  />
 				}else{
 					cal = <Calculate label="Procesar" appendValue={this.appendValue.bind(this)}  />
 				}
-				return(
-					<div className="container">
+				var get_partidas =  <Partidas partidas={this.state.partidas} addRelation={this.addRelation.bind(this)}/>
+				return (<div className="container">
 						<div className="row">
 							<div className="col-md-12">
 								<h2 className="text-center">Selecciona las partidas para la caja {this.state.caja}</h2>
@@ -326,7 +333,7 @@ class App extends Component {
 							<div className="col-xs-6 col-sm-6 col-md-6">
 								<div className="row">
 									<div className="col-xs-12 col-sm-12 col-md-12">
-										<Partidas partidas={this.state.partidas} addRelation={this.addRelation.bind(this)}/>
+										{get_partidas}
 									</div>
 								</div>
 							</div>
@@ -334,7 +341,6 @@ class App extends Component {
 						</div>
 					</div>
 				);
-			break;
 			case 'review':
 				let h = ''
 				var label = '';
@@ -366,7 +372,6 @@ class App extends Component {
 						</div>
 					</div>
 				);
-			break;
 			case 'imprimir':
 
 				return(
@@ -385,14 +390,12 @@ class App extends Component {
 
 					</div>
 				);
-			break;
 			default:
 				inputStyle= {
 					width : "35%",
 					float : "right",
 					fontSize: "92px"
 				}
-				console.log(this.state);
 				return (
 					<div className="container">
 						<div className="row">
@@ -408,7 +411,6 @@ class App extends Component {
 						</div>
 					</div>
 				);
-			break;
 		}
 	}
 }
