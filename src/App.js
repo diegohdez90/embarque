@@ -10,7 +10,7 @@ import Select from './components/Select';
 import Partidas from './components/Partidas';
 import Review from './components/Review';
 import Button from './components/Button'
-
+import ButtonFA from './components/ButtonFA';
 
 class App extends Component {
 
@@ -26,7 +26,8 @@ class App extends Component {
 			partidas_x_cajas : false,
 			review : [],
 			guia : null,
-			cadena : null
+			cadena : null,
+			all : null
 		}
 		this.w = '';
 		this.guia = {};
@@ -35,11 +36,9 @@ class App extends Component {
 	addPartidas(v){
 		this.w='choose';
 		this.setState({ partidas : v, caja : 1 });
-		console.log(this.state.partidas);
 	}
 
 	addRelation(v){
-		//this.state.partidas_x_cajas[this.state.caja].push(v);
 		var tmp_partidas = this.state.partidas;
 		for(var i in this.state.partidas){
 			if(this.state.partidas[i]!==undefined){
@@ -58,7 +57,46 @@ class App extends Component {
 	
 		}
 		this.setState({ partidas :  tmp_partidas})
-		console.log(this.state)
+	}
+
+
+
+
+	selectAll(){
+
+		var tmp_partidas = this.state.partidas;
+		for(var i in this.state.partidas){
+			if(this.state.partidas[i]!==undefined){
+				for (var j in this.state.partidas[i]) {
+					if(this.state.partidas[i][j].style.display==='' && isNaN(this.state.partidas[i][j].caja)){
+						tmp_partidas[i][j].caja = this.state.caja;
+						tmp_partidas[i][j].className = 'fa fa-check';
+					}
+				}
+			}
+	
+		}
+		this.setState({ partidas :  tmp_partidas})
+
+	}
+
+
+	deselectAll(){
+		var tmp_partidas = this.state.partidas;
+		for(var i in this.state.partidas){
+			if(this.state.partidas[i]!==undefined){
+				for (var j in this.state.partidas[i]) {
+					if(this.state.partidas[i][j].style.display==='' && !isNaN(this.state.partidas[i][j].caja)){
+						tmp_partidas[i][j].caja = NaN;
+						tmp_partidas[i][j].className = null;
+					}
+				}
+			}
+	
+		}
+		this.setState({ partidas :  tmp_partidas})
+
+
 	}
 
 	saveGuia(d){
@@ -82,8 +120,6 @@ class App extends Component {
 			responseText.json()
 		)
 		.then( (response) => {
-				console.log(response)
-				//self.setState({guia:reponse});
 				self.saveGuia(response);
 				return response;
 			}
@@ -99,6 +135,9 @@ class App extends Component {
 		printWindow.print();
 		printWindow.close();
 	}
+
+
+	
 
 	appendValue(v){
 
@@ -162,7 +201,7 @@ class App extends Component {
 					case 'op':
 						if (this.state.ops.length >0 ) {
 							this.w = 'getPartidas';
-							this.setState({'partidas_x_cajas' : true});
+							this.setState({'partidas_x_cajas' : true, 'all' : false});
 						}else{
 							alert('No proporcionaste OP')
 						}
@@ -170,7 +209,7 @@ class App extends Component {
 					case 'choose':
 						var tmp_partidas = this.state.partidas;
 						var partidas_ = [];
-
+						var sliceNACaja = [];
 						for(var i in this.state.partidas){
 							if(this.state.partidas[i]!==undefined){
 								for (var j in this.state.partidas[i]) {
@@ -180,6 +219,10 @@ class App extends Component {
 									}
 									
 								}
+								sliceNACaja = tmp_partidas[i];
+								_.remove(sliceNACaja, function(ii){
+									return isNaN(ii.caja);
+								})
 								partidas_ = update(partidas_, {$push : tmp_partidas[i]});
 							}
 						}
@@ -204,6 +247,7 @@ class App extends Component {
 			
 				}
 				this.setState({partidas : tmp_partidas_})
+				this.setState({all:false})
 				this.setState((prevState) => ({ caja : prevState.caja+1}));
 
 			break;
@@ -228,9 +272,18 @@ class App extends Component {
 				});
 
 			break;
+			case 'all':
+				if(this.state.all){
+					this.deselectAll();
+					this.setState({all:false});
+				}else{
+					this.selectAll();
+					this.setState({all:true});
+				}
+			break;
 			default:
 				switch(this.w){
-					default:
+					case '':
 						if(this.state.cajas.length>1){
 							const c = this.state.cajas.substring(1)+v;
 							this.setState({cajas:c});
@@ -249,11 +302,17 @@ class App extends Component {
 
 	render() {
 		var inputStyle = {};
+		var tableStyle= {};
 		switch(this.w){
 			case 'op':
 				inputStyle= {
 					width: '100%',
 					float : "right"
+				};
+				tableStyle= {
+					height : '250px',
+					'overflowY' : 'scroll',
+					'overflowX' : 'hidden'
 				}
 				return( 	
 					<div className="container">
@@ -278,7 +337,7 @@ class App extends Component {
 									</div>
 									<div className="col-md-4">
 									</div>
-									<div className="col-md-4">
+									<div className="col-md-4" style={tableStyle}>
 										<TableOP ops={this.state.ops}/>
 									</div>
 								</div>
@@ -289,6 +348,7 @@ class App extends Component {
 					);
 			case 'getPartidas':
 				var on_load = null;
+				
 				if(this.state.partidas !==  null){
 					on_load = <h2 className="text-center">Partidas Cargadas (Click en Procesar)</h2>;
 				}else{
@@ -306,7 +366,7 @@ class App extends Component {
 								<div className="row">
 									<div className="col-md-6">
 									</div>
-									<div className="col-md-6">
+									<div className="col-md-6"> 
 										<Select addPartidas={this.addPartidas.bind(this)} ops={this.state.ops}  appendValue={this.appendValue.bind(this)}/>
 									</div>
 								</div>
@@ -317,6 +377,17 @@ class App extends Component {
 				);
 			case 'choose':
 				var cal = null;
+				let fa;
+				tableStyle= {
+					height : '250px',
+					'overflowY' : 'scroll',
+					'overflowX' : 'hidden'
+				}
+				if(!this.state.all){
+					fa = 'fa fa-square-o';
+				}else{
+					fa = 'fa fa-check-square-o';
+				}
 				if(this.state.caja < parseInt(this.state.cajas,10)){
 					cal = <Calculate label="Siguiente" appendValue={this.appendValue.bind(this)}  />
 				}else{
@@ -332,18 +403,25 @@ class App extends Component {
 						<div className="row">
 							<div className="col-xs-6 col-sm-6 col-md-6">
 								<div className="row">
-									<div className="col-xs-12 col-sm-12 col-md-12">
+									<div className="col-xs-12 col-sm-12 col-md-12" style={tableStyle}>
 										{get_partidas}
 									</div>
 								</div>
 							</div>
-							<div className="col-xs-6 col-sm-6 col-md-6">{cal}</div>
+							<div className="col-xs-6 col-sm-6 col-md-6">{cal}
+							<ButtonFA addValue={this.appendValue.bind(this)} fa={fa} value="all" />
+							</div>
 						</div>
 					</div>
 				);
 			case 'review':
 				let h = ''
 				var label = '';
+				tableStyle= {
+					height : '250px',
+					'overflowY' : 'scroll',
+					'overflowX' : 'hidden'
+				}
 				if(this.state.guia){
 					h = 'Guia Generada Click en Procesar';
 					label = 'Procesar'
@@ -361,7 +439,7 @@ class App extends Component {
 						<div className="row">
 							<div className="col-md-3">
 							</div>
-							<div className="col-md-6">
+							<div className="col-md-6" style={tableStyle}>
 								<Review partidas={this.state.review}/>
 							</div>
 							<div className="col-md-3">
