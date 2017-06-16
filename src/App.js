@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import update from 'react-addons-update';
 import _ from 'lodash';
-
+import axios from 'axios';
 
 import Input from './components/Input';
 import Calculate from  './components/Calculate';
@@ -11,6 +11,8 @@ import Partidas from './components/Partidas';
 import Review from './components/Review';
 import Button from './components/Button'
 import ButtonFA from './components/ButtonFA';
+
+
 
 class App extends Component {
 
@@ -31,6 +33,7 @@ class App extends Component {
 		}
 		this.w = '';
 		this.guia = {};
+
 	}
 
 	addPartidas(v){
@@ -99,11 +102,32 @@ class App extends Component {
 
 	}
 
-	saveGuia(d){
-		this.w = 'imprimir';
+	setImprimir(d){
+		this.w="imprimir";
 		this.setState({guia: d.RetornoSolicitud.guiaNo});
-		this.setState({cadena: d.RetornoSolicitud.cadenaImpresion});
+	}
 
+	saveGuia(d){
+
+		var self = this;
+		let solicitud = d;
+		var data = new FormData();
+		data.append('auth',1);
+		data.append('zpl',d.RetornoSolicitud.cadenaImpresion);
+		axios.post('http://localhost:3000/setCadena',
+			{
+				params :{
+					zpl : d.RetornoSolicitud.cadenaImpresion
+				}
+			}
+		)
+		.then(function (response) {
+			console.log(response);
+			self.setImprimir(solicitud)
+		}).
+		catch(function (err) {
+			console.log(err);
+		})
 	}
 
 
@@ -127,13 +151,13 @@ class App extends Component {
 	}
 
 	printZpl() {
-		var printWindow = window.open();
-		printWindow.document.open('text/plain')
-		printWindow.document.write(this.state.cadena);
-		printWindow.document.close();
-		printWindow.focus();
-		printWindow.print();
-		printWindow.close();
+		axios.get('http://localhost:3000/imprimirZpl')
+		.then(function (response) {
+			console.log(response);
+		}).
+		catch(function (err) {
+			console.log(err);
+		})
 	}
 
 
